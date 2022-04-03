@@ -1,72 +1,114 @@
 "use strict";
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _TypeCache_cache, _TypeCache_count, _TypeCache_ttl;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TypeCache = void 0;
 const { EventEmitter } = require("events");
 class TypeCache extends EventEmitter {
     constructor() {
         super();
-        this._cache = {};
-        this._ttl = 0;
-        this._count = 0;
+        _TypeCache_cache.set(this, void 0);
+        _TypeCache_count.set(this, void 0);
+        _TypeCache_ttl.set(this, void 0);
+        __classPrivateFieldSet(this, _TypeCache_cache, {}, "f");
+        __classPrivateFieldSet(this, _TypeCache_count, 0, "f");
+        __classPrivateFieldSet(this, _TypeCache_ttl, Infinity, "f");
         return this;
     }
     get count() {
-        return this._count;
+        return __classPrivateFieldGet(this, _TypeCache_count, "f");
     }
     get ttl() {
-        return this._ttl;
+        return __classPrivateFieldGet(this, _TypeCache_ttl, "f");
     }
     set ttl(ttl) {
         if (ttl && typeof ttl === "number" && ttl > 0)
-            this._ttl = ttl;
+            __classPrivateFieldSet(this, _TypeCache_ttl, ttl, "f");
+    }
+    keys() {
+        return Object.getOwnPropertyNames(__classPrivateFieldGet(this, _TypeCache_cache, "f"));
     }
     insert(key, value, ttl) {
-        ttl = (ttl && typeof ttl === "number" && ttl > 0) ? ttl : 0;
-        this._cache[key] = {
+        var _a;
+        ttl = (ttl && typeof ttl === "number" && ttl > 0) ? ttl : __classPrivateFieldGet(this, _TypeCache_ttl, "f");
+        __classPrivateFieldGet(this, _TypeCache_cache, "f")[key] = {
             value: value,
             ttl: ttl,
-            timeout: (ttl) ? setTimeout(this._delete, ttl, this, key) : undefined,
+            timeout: (ttl !== Infinity) ? setTimeout((key) => { this.delete(key); }, ttl, key) : undefined,
             added: Date.now()
         };
-        this._count++;
-        this.emit("insert", this._cache[key]);
+        __classPrivateFieldSet(this, _TypeCache_count, (_a = __classPrivateFieldGet(this, _TypeCache_count, "f"), _a++, _a), "f");
     }
     exists(key) {
-        return this._cache.hasOwnProperty(key);
+        return __classPrivateFieldGet(this, _TypeCache_cache, "f").hasOwnProperty(key);
     }
     select(key) {
         if (this.exists(key))
-            return this._cache[key].value;
+            return __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].value;
     }
     update(key, value) {
         if (this.exists(key))
-            this._cache[key].value = value;
+            __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].value = value;
     }
-    extend(key, ttl = 0) {
-        if (this.exists(key) && ttl && typeof ttl === "number" && ttl >= 0) {
-            clearTimeout(this._cache[key].timeout);
-            if (ttl > 0)
-                this._cache[key].timeout = setTimeout(this._delete, ttl, this, key);
+    remaining(key) {
+        if (this.exists(key)) {
+            return __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl - (Date.now() - __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].added);
+        }
+    }
+    extend(key, ttl) {
+        if (this.exists(key)) {
+            clearTimeout(__classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout);
+            ttl = (ttl && typeof ttl === "number" && ttl > 0) ? ttl : __classPrivateFieldGet(this, _TypeCache_ttl, "f");
+            if (ttl !== Infinity) {
+                let remaining = __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl - (Date.now() - __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].added);
+                __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl += ttl;
+                __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout = setTimeout((key) => { this.delete(key); }, remaining + ttl, key);
+            }
+            else {
+                __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl = ttl;
+            }
+        }
+    }
+    shorten(key, ttl) {
+        if (this.exists(key) && ttl && typeof ttl === "number") {
+            ttl = Math.abs(ttl);
+            let remaining = __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl - (Date.now() - __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].added);
+            if (ttl < remaining) {
+                __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl -= ttl;
+                clearTimeout(__classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout);
+                if (remaining !== Infinity)
+                    __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout = setTimeout((key) => { this.delete(key); }, remaining - ttl, key);
+            }
         }
     }
     delete(key) {
-        this._delete(this, key);
+        var _a;
+        if (this.exists(key)) {
+            let item = Object.assign({ key: key.toString() }, __classPrivateFieldGet(this, _TypeCache_cache, "f")[key], { deleted: Date.now() });
+            delete item.timeout;
+            delete __classPrivateFieldGet(this, _TypeCache_cache, "f")[key];
+            __classPrivateFieldSet(this, _TypeCache_count, (_a = __classPrivateFieldGet(this, _TypeCache_count, "f"), _a--, _a), "f");
+            this.emit("delete", item);
+        }
     }
     truncate() {
-        for (let key of Object.keys(this._cache)) {
-            this._delete(this, key);
+        for (let key of Object.keys(__classPrivateFieldGet(this, _TypeCache_cache, "f"))) {
+            this.delete(key);
         }
-        this._cache = {};
-        this._count = 0;
-        return this;
-    }
-    _delete(cache, key) {
-        if (cache.exists(key)) {
-            cache.emit("delete", Object.assign({ key: key }, cache._cache[key]));
-            delete cache._cache[key];
-            cache._count--;
-        }
+        __classPrivateFieldSet(this, _TypeCache_cache, {}, "f");
+        __classPrivateFieldSet(this, _TypeCache_count, 0, "f");
     }
 }
 exports.TypeCache = TypeCache;
+_TypeCache_cache = new WeakMap(), _TypeCache_count = new WeakMap(), _TypeCache_ttl = new WeakMap();
 //# sourceMappingURL=type-cache.js.map

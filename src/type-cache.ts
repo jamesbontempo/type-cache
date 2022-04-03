@@ -2,80 +2,104 @@
 const { EventEmitter } = require("events");
 
 export class TypeCache extends EventEmitter {
-    private _cache: any;
-    private _ttl: number;
-    private _count: number;
+    #cache: any;
+    #count: number;
+    #ttl: number;
 
     constructor() {
         super();
-        this._cache = {};
-        this._ttl = 0;
-        this._count = 0;
-
+        this.#cache = {};
+        this.#count = 0;
+        this.#ttl = Infinity;
         return this;
     }
 
     get count(): number {
-        return this._count;
+        return this.#count;
     }
 
     get ttl(): number {
-        return this._ttl;
+        return this.#ttl;
     }
 
     set ttl(ttl: number) {
-        if (ttl && typeof ttl === "number" && ttl > 0) this._ttl = ttl;
+        if (ttl && typeof ttl === "number" && ttl > 0) this.#ttl = ttl;
+    }
+
+    keys(): Array {
+        return Object.getOwnPropertyNames(this.#cache);
     }
 
     insert(key: string, value: any, ttl?: number): void {
-        ttl = (ttl && typeof ttl === "number" && ttl > 0) ? ttl : 0;
-        this._cache[key] = {
+        ttl = (ttl && typeof ttl === "number" && ttl > 0) ? ttl : this.#ttl;
+        this.#cache[key] = {
             value: value,
             ttl: ttl,
-            timeout: (ttl) ? setTimeout(this._delete, ttl, this, key) : undefined,
+            timeout: (ttl !== Infinity) ? setTimeout((key: string) => { this.delete(key) }, ttl, key) : undefined,
             added: Date.now()
         }
-        this._count++;
-        this.emit("insert", this._cache[key]);
+        this.#count++;
     }
 
     exists(key: string): boolean {
-        return this._cache.hasOwnProperty(key);
+        return this.#cache.hasOwnProperty(key);
     }
 
     select(key: string): any {
-        if (this.exists(key)) return this._cache[key].value;
+        if (this.exists(key)) return this.#cache[key].value;
     }
 
-    update(key: string, value: any) {
-        if (this.exists(key)) this._cache[key].value = value;
+    update(key: string, value: any): void {
+        if (this.exists(key)) this.#cache[key].value = value;
     }
 
-    extend(key: string, ttl = 0): void {
-        if (this.exists(key) && ttl && typeof ttl === "number" && ttl >= 0) {
-            clearTimeout(this._cache[key].timeout);
-            if (ttl > 0) this._cache[key].timeout = setTimeout(this._delete, ttl, this, key);
+    remaining(key: string): number | void {
+        if (this.exists(key)) {
+            return this.#cache[key].ttl - (Date.now() - this.#cache[key].added);
+        }
+    }
+
+    extend(key: string, ttl?: number): void {
+        if (this.exists(key)) {
+            clearTimeout(this.#cache[key].timeout);
+            ttl = (ttl && typeof ttl === "number" && ttl > 0) ? ttl : this.#ttl;
+            if (ttl !== Infinity) {
+                let remaining = this.#cache[key].ttl - (Date.now() - this.#cache[key].added);
+                this.#cache[key].ttl += ttl;
+                this.#cache[key].timeout = setTimeout((key: string) => { this.delete(key); }, remaining + ttl, key);
+            } else {
+                this.#cache[key].ttl = ttl;
+            }
+        }
+    }
+
+    shorten(key: string, ttl: number): void {
+        if (this.exists(key) && ttl && typeof ttl === "number") {
+            ttl = Math.abs(ttl);
+            let remaining = this.#cache[key].ttl - (Date.now() - this.#cache[key].added);
+            if (ttl < remaining) {
+                this.#cache[key].ttl -= ttl;
+                clearTimeout(this.#cache[key].timeout);
+                if (remaining !== Infinity) this.#cache[key].timeout = setTimeout((key: string) => { this.delete(key); }, remaining - ttl, key);
+            }
         }
     }
 
     delete(key: string): void {
-        this._delete(this, key);
+        if (this.exists(key)) {
+            let item =  Object.assign({ key: key.toString() }, this.#cache[key], { deleted: Date.now() });
+            delete item.timeout;
+            delete this.#cache[key];
+            this.#count--;
+            this.emit("delete", item);
+        }
     }
 
-    truncate(): TypeCache {
-        for (let key of Object.keys(this._cache)) {
-            this._delete(this, key);
+    truncate(): void {
+        for (let key of Object.keys(this.#cache)) {
+            this.delete(key);
         }
-        this._cache = {};
-        this._count = 0;
-        return this;
-    }
-
-    _delete(cache: TypeCache, key: string): void {
-        if (cache.exists(key)) {
-            cache.emit("delete", Object.assign({ key: key }, cache._cache[key]));
-            delete cache._cache[key];
-            cache._count--;
-        }
+        this.#cache = {};
+        this.#count = 0;
     }
 }
