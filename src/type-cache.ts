@@ -1,5 +1,5 @@
 
-const { EventEmitter } = require("events");
+import { EventEmitter } from  "events";
 
 export class TypeCache extends EventEmitter {
     #cache: any;
@@ -26,7 +26,7 @@ export class TypeCache extends EventEmitter {
         if (ttl && typeof ttl === "number" && ttl > 0) this.#ttl = ttl;
     }
 
-    keys(): Array {
+    keys(): Array<string> {
         return Object.getOwnPropertyNames(this.#cache);
     }
 
@@ -36,9 +36,12 @@ export class TypeCache extends EventEmitter {
             value: value,
             ttl: ttl,
             timeout: (ttl !== Infinity) ? setTimeout((key: string) => { this.delete(key) }, ttl, key) : undefined,
-            added: Date.now()
+            added: Date.now(),
+            modified: undefined,
+            deleted: undefined
         }
         this.#count++;
+        this.emit("insert", this.#format(key, this.#cache[key]));
     }
 
     exists(key: string): boolean {
@@ -50,7 +53,13 @@ export class TypeCache extends EventEmitter {
     }
 
     update(key: string, value: any): void {
-        if (this.exists(key)) this.#cache[key].value = value;
+        if (this.exists(key)) {
+            let before = this.#format(key, Object.assign({}, this.#cache[key]));
+            this.#cache[key].value = value;
+            this.#cache[key].modified = Date.now();
+            let after = this.#format(key, Object.assign({}, this.#cache[key]));
+            this.emit("update", { before: before, after: after });
+        }
     }
 
     remaining(key: string): number | void {
@@ -87,11 +96,11 @@ export class TypeCache extends EventEmitter {
 
     delete(key: string): void {
         if (this.exists(key)) {
-            let item =  Object.assign({ key: key.toString() }, this.#cache[key], { deleted: Date.now() });
-            delete item.timeout;
+            let item =  Object.assign({}, this.#cache[key]);
+            item.deleted = Date.now();
             delete this.#cache[key];
             this.#count--;
-            this.emit("delete", item);
+            this.emit("delete", this.#format(key, item));
         }
     }
 
@@ -101,5 +110,11 @@ export class TypeCache extends EventEmitter {
         }
         this.#cache = {};
         this.#count = 0;
+    }
+
+    #format(key: string, object: any): any {
+        let item = Object.assign({ key: key.toString() }, object);
+        delete item.timeout;
+        return item;
     }
 }

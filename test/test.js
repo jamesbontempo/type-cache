@@ -5,6 +5,8 @@ var cache;
 var items = [];
 var keys = [];
 var count = 0;
+var inserts = [];
+var updates = [];
 var deletes = [];
 
 describe("TypeCache tests", () => {
@@ -15,8 +17,27 @@ describe("TypeCache tests", () => {
         expect(cache.ttl).to.equal(Infinity);
     });
 
+    it("Listens for items being inserted into the cache", () => {
+        let properties = ["added", "deleted", "key", "modified", "ttl", "value"];
+        cache.on("insert", item => {
+            expect(Object.getOwnPropertyNames(item).sort()).to.deep.equal(properties);
+            expect(item.modifed).to.equal(undefined);
+            expect(item.deleted).to.equal(undefined);
+            inserts.push(item);
+        });
+    });
+
+    it("Listens for items being updated in the cache", () => {
+        let properties = ["after", "before"];
+        cache.on("update", item => {
+            expect(Object.getOwnPropertyNames(item).sort()).to.deep.equal(properties);
+            expect(item.after.modified).to.not.equal(undefined);
+            updates.push(item);
+        });
+    });
+
     it("Listens for items being deleted from the cache", () => {
-        let properties = ["added", "deleted", "key", "ttl", "value"];
+        let properties = ["added", "deleted", "key", "modified", "ttl", "value"];
         cache.on("delete", item => {
             expect(Object.getOwnPropertyNames(item).sort()).to.deep.equal(properties);
             if (item.ttl !== Infinity && item.key !== "0") {
@@ -62,9 +83,10 @@ describe("TypeCache tests", () => {
     });
 
     it("Updates the value of an item in the cache", () => {
-        cache.update("5", "new value");
-        items.find(item => item.key === "5").value = "new value";
-        expect(cache.select(5)).to.equal("new value");
+        let value = ["new value"];
+        cache.update("5", value);
+        items.find(item => item.key === "5").value = value;
+        expect(cache.select(5)).to.deep.equal(value);
     });
 
     it("Tries to update the value of an item that doesn't exist in the cache", () => {
@@ -143,7 +165,9 @@ describe("TypeCache tests", () => {
         }, 10000);
     });
 
-    it("Checks to see if we 'heard' every deletion", function(done) {
+    it("Checks to see if we 'heard' every event", function(done) {
+        expect(inserts.length).to.equal(count);
+        expect(updates.length).to.equal(1);
         expect(deletes.length).to.equal(count);
         for (deleted of deletes) {
             let item = items.find(item => item.key === deleted.key);

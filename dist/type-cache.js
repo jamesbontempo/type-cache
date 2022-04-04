@@ -10,13 +10,14 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _TypeCache_cache, _TypeCache_count, _TypeCache_ttl;
+var _TypeCache_instances, _TypeCache_cache, _TypeCache_count, _TypeCache_ttl, _TypeCache_format;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TypeCache = void 0;
-const { EventEmitter } = require("events");
-class TypeCache extends EventEmitter {
+const events_1 = require("events");
+class TypeCache extends events_1.EventEmitter {
     constructor() {
         super();
+        _TypeCache_instances.add(this);
         _TypeCache_cache.set(this, void 0);
         _TypeCache_count.set(this, void 0);
         _TypeCache_ttl.set(this, void 0);
@@ -45,9 +46,12 @@ class TypeCache extends EventEmitter {
             value: value,
             ttl: ttl,
             timeout: (ttl !== Infinity) ? setTimeout((key) => { this.delete(key); }, ttl, key) : undefined,
-            added: Date.now()
+            added: Date.now(),
+            modified: undefined,
+            deleted: undefined
         };
         __classPrivateFieldSet(this, _TypeCache_count, (_a = __classPrivateFieldGet(this, _TypeCache_count, "f"), _a++, _a), "f");
+        this.emit("insert", __classPrivateFieldGet(this, _TypeCache_instances, "m", _TypeCache_format).call(this, key, __classPrivateFieldGet(this, _TypeCache_cache, "f")[key]));
     }
     exists(key) {
         return __classPrivateFieldGet(this, _TypeCache_cache, "f").hasOwnProperty(key);
@@ -57,8 +61,13 @@ class TypeCache extends EventEmitter {
             return __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].value;
     }
     update(key, value) {
-        if (this.exists(key))
+        if (this.exists(key)) {
+            let before = __classPrivateFieldGet(this, _TypeCache_instances, "m", _TypeCache_format).call(this, key, Object.assign({}, __classPrivateFieldGet(this, _TypeCache_cache, "f")[key]));
             __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].value = value;
+            __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].modified = Date.now();
+            let after = __classPrivateFieldGet(this, _TypeCache_instances, "m", _TypeCache_format).call(this, key, Object.assign({}, __classPrivateFieldGet(this, _TypeCache_cache, "f")[key]));
+            this.emit("update", { before: before, after: after });
+        }
     }
     remaining(key) {
         if (this.exists(key)) {
@@ -94,11 +103,11 @@ class TypeCache extends EventEmitter {
     delete(key) {
         var _a;
         if (this.exists(key)) {
-            let item = Object.assign({ key: key.toString() }, __classPrivateFieldGet(this, _TypeCache_cache, "f")[key], { deleted: Date.now() });
-            delete item.timeout;
+            let item = Object.assign({}, __classPrivateFieldGet(this, _TypeCache_cache, "f")[key]);
+            item.deleted = Date.now();
             delete __classPrivateFieldGet(this, _TypeCache_cache, "f")[key];
             __classPrivateFieldSet(this, _TypeCache_count, (_a = __classPrivateFieldGet(this, _TypeCache_count, "f"), _a--, _a), "f");
-            this.emit("delete", item);
+            this.emit("delete", __classPrivateFieldGet(this, _TypeCache_instances, "m", _TypeCache_format).call(this, key, item));
         }
     }
     truncate() {
@@ -110,5 +119,9 @@ class TypeCache extends EventEmitter {
     }
 }
 exports.TypeCache = TypeCache;
-_TypeCache_cache = new WeakMap(), _TypeCache_count = new WeakMap(), _TypeCache_ttl = new WeakMap();
+_TypeCache_cache = new WeakMap(), _TypeCache_count = new WeakMap(), _TypeCache_ttl = new WeakMap(), _TypeCache_instances = new WeakSet(), _TypeCache_format = function _TypeCache_format(key, object) {
+    let item = Object.assign({ key: key.toString() }, object);
+    delete item.timeout;
+    return item;
+};
 //# sourceMappingURL=type-cache.js.map
