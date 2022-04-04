@@ -37,20 +37,38 @@ cache.delete("key");
 ## Cache item methods
 `insert(key, value [, ttl])` Inserts an item into the cache. If no `ttl` is provided the default cache-level ttl is used.
 
-`update(key, value)` Updates the value of the key in the cache.
+`update(key, value)` Updates the value of the item in the cache.
 
-`remaining(key)` Returns the remaining `ttl` time; that is, how much longer before the item is removed from the cache.
+`remaining(key)` Returns the remaining `ttl` time for the item; that is, how much longer before the item is removed from the cache.
 
-`extend(key [, ttl])` Extends the `ttl` of the item. If no `ttl` is provided the default cache-level ttl is used. If a `ttl` of `Infinity` is provided, the `ttl` is effectively removed.
+`extend(key [, ttl])` Extends the `ttl` of the item by a number of milliseconds. If no `ttl` is provided the default cache-level ttl is used (allowing you to basically "bump" the item). If a `ttl` of `Infinity` is provided, the `ttl` is effectively removed.
 
-`shorten(key, ttl)` Shortens the `ttl` of the item.
+`shorten(key, ttl)` Shortens the `ttl` of the item by a number of milliseconds. If the current `ttl` is less than the value provided no changes are made because the item would be deleted before the shortened time anyway. If the current `ttl` is `Infinity` sets the `ttl` to the value provided.
 
-`delete(key)`
+`delete(key)` Deletes the item from the cache.
 
 ## Cache events
 
-`insert`
+The cache emits events when the `insert`, `update`, and `delete` methods are called. The events have the same corresponding names: `insert`, `update`, and `delete`. They emit objects with information about the related cache items:
 
-`update`
+```js
+{
+    key: key name,
+    value: key value,
+    ttl: ttl,
+    added: when the key was added,
+    modified: when the key was modified,
+    deleted: when the key was deleted
+}
+```
 
-`delete`
+`insert` Emits information about the item inserted.
+
+`update` Emits information about the updates to an item. Includes `before` and `after` objects allowing for comparison.
+
+`delete` Emits information about the item deleted. Useful to "listen" for `ttl` expirations.
+
+This allows you to do something like this:
+```js
+cache.on("delete", item => { doSomethingWith(item); });
+```
