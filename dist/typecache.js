@@ -129,4 +129,4 @@ _TypeCache_cache = new WeakMap(), _TypeCache_count = new WeakMap(), _TypeCache_t
     delete item.timeout;
     return item;
 };
-//# sourceMappingURL=type-cache.js.map
+//# sourceMappingURL=typecache.js.map

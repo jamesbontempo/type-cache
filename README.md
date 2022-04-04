@@ -1,12 +1,12 @@
-# type-cache
+# typecache
 
 ![Version](https://img.shields.io/github/package-json/v/jamesbontempo/type-cache?color=blue) [![Coverage](https://codecov.io/gh/jamesbontempo/type-cache/branch/main/graph/badge.svg?token=199Q3V345I)](https://codecov.io/gh/jamesbontempo/type-cache) ![License](https://img.shields.io/github/license/jamesbontempo/type-cache?color=red)
 
-`type-cache` is a simple TypeScript caching library with ttl support and SQL-inspired syntax.
+`typecache` is a simple TypeScript caching library with ttl support and SQL-inspired syntax.
 
 ## Install
 ```js
-npm install type-cache
+npm install @jamesbontempo/typecache
 ```
 ## Test
 ```js
@@ -14,7 +14,7 @@ npm test
 ```
 ## Usage
 ```js
-const { TypeCache } = require("type-cache");
+const { TypeCache } = require("@jamesbontempo/typecache");
 const cache = new TypeCache();
 cache.insert("key", "value");
 cache.update("key", ["new value 1", "new value 2"]);

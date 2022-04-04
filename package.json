@@ -1,11 +1,11 @@
 {
-  "name": "type-cache",
+  "name": "@jamesbontempo/typecache",
   "version": "0.1.0",
   "description": "A simple TypeScript caching library with ttl support and SQL-inspired syntax",
   "files": [
     "dist"
   ],
-  "main": "./dist/type-cache.js",
+  "main": "./dist/typecache.js",
   "scripts": {
     "test": "mocha",
     "coverage": "nyc npm run test",

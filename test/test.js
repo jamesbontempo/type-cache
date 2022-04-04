@@ -1,4 +1,4 @@
-const { TypeCache } = require("../dist/type-cache");
+const { TypeCache } = require("../dist/typecache");
 const expect = require("chai").expect;
 
 var cache;
