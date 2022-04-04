@@ -89,14 +89,19 @@ class TypeCache extends events_1.EventEmitter {
         }
     }
     shorten(key, ttl) {
-        if (this.exists(key) && ttl && typeof ttl === "number") {
-            ttl = Math.abs(ttl);
-            let remaining = __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl - (Date.now() - __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].added);
-            if (ttl < remaining) {
-                __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl -= ttl;
-                clearTimeout(__classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout);
-                if (remaining !== Infinity)
-                    __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout = setTimeout((key) => { this.delete(key); }, remaining - ttl, key);
+        if (this.exists(key) && ttl && typeof ttl === "number" && ttl > 0) {
+            if (__classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl === Infinity) {
+                __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl = ttl;
+                __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout = setTimeout((key) => { this.delete(key); }, ttl, key);
+            }
+            else {
+                let remaining = __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl - (Date.now() - __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].added);
+                if (ttl < remaining) {
+                    __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl -= ttl;
+                    clearTimeout(__classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout);
+                    if (remaining !== Infinity)
+                        __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout = setTimeout((key) => { this.delete(key); }, remaining - ttl, key);
+                }
             }
         }
     }
@@ -110,7 +115,7 @@ class TypeCache extends events_1.EventEmitter {
             this.emit("delete", __classPrivateFieldGet(this, _TypeCache_instances, "m", _TypeCache_format).call(this, key, item));
         }
     }
-    truncate() {
+    clear() {
         for (let key of Object.keys(__classPrivateFieldGet(this, _TypeCache_cache, "f"))) {
             this.delete(key);
         }

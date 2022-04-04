@@ -40,8 +40,10 @@ describe("TypeCache tests", () => {
         let properties = ["added", "deleted", "key", "modified", "ttl", "value"];
         cache.on("delete", item => {
             expect(Object.getOwnPropertyNames(item).sort()).to.deep.equal(properties);
-            if (item.ttl !== Infinity && item.key !== "0") {
+            if (item.key !== "0" && item.key !== "9") {
                 expect(item.deleted - item.added).to.be.at.least(item.ttl - 10);
+            } else if (item.key === "9") {
+                expect(item.deleted - item.added).to.be.at.least(10 * 1000);
             }
             deletes.push(item);
         });
@@ -108,9 +110,11 @@ describe("TypeCache tests", () => {
         expect(cache.remaining("non-existent item")).to.equal();
     });
 
-    it("Shortens an item in the cache", () => {
+    it("Shortens items in the cache", () => {
         cache.shorten("7", 50);
         items.find(item => item.key === "7").ttl -= 50;
+        cache.shorten("9", 15000);
+        items.find(item => item.key === "9").ttl = 15000;
     });
 
     it("Tries to shorten an item in the cache that has a shorter ttl", () => {
@@ -124,7 +128,7 @@ describe("TypeCache tests", () => {
     });
 
     it ("Checks the remaining time before deletion for items in the cache", () => {
-        expect(cache.remaining("9")).to.equal(Infinity);
+        expect(cache.remaining("9")).to.be.below(15000);
         expect(cache.remaining("8")).to.be.below(5500);
         expect(cache.remaining("7")).to.be.below(2450);
     });
@@ -158,7 +162,7 @@ describe("TypeCache tests", () => {
         this.timeout(10500);
         setTimeout(() => {
             expect(cache.count).to.equal(1);
-            cache.truncate();
+            cache.clear();
             expect(cache.count).to.equal(0);
             expect(cache.keys()).to.deep.equal([]);
             done();

@@ -83,13 +83,17 @@ export class TypeCache extends EventEmitter {
     }
 
     shorten(key: string, ttl: number): void {
-        if (this.exists(key) && ttl && typeof ttl === "number") {
-            ttl = Math.abs(ttl);
-            let remaining = this.#cache[key].ttl - (Date.now() - this.#cache[key].added);
-            if (ttl < remaining) {
-                this.#cache[key].ttl -= ttl;
-                clearTimeout(this.#cache[key].timeout);
-                if (remaining !== Infinity) this.#cache[key].timeout = setTimeout((key: string) => { this.delete(key); }, remaining - ttl, key);
+        if (this.exists(key) && ttl && typeof ttl === "number" && ttl > 0) {
+            if (this.#cache[key].ttl === Infinity) {
+                this.#cache[key].ttl = ttl;
+                this.#cache[key].timeout = setTimeout((key: string) => {this.delete(key); }, ttl, key);
+            } else {
+                let remaining = this.#cache[key].ttl - (Date.now() - this.#cache[key].added);
+                if (ttl < remaining) {
+                    this.#cache[key].ttl -= ttl;
+                    clearTimeout(this.#cache[key].timeout);
+                    if (remaining !== Infinity) this.#cache[key].timeout = setTimeout((key: string) => { this.delete(key); }, remaining - ttl, key);
+                }
             }
         }
     }
@@ -104,7 +108,7 @@ export class TypeCache extends EventEmitter {
         }
     }
 
-    truncate(): void {
+    clear(): void {
         for (let key of Object.keys(this.#cache)) {
             this.delete(key);
         }
