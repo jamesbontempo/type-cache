@@ -30,7 +30,12 @@ export class TypeCache extends EventEmitter {
         return Object.getOwnPropertyNames(this.#cache);
     }
 
-    insert(key: string, value: any, ttl?: number): void {
+    insert(key: string, value: any, ttl?: number, force?: true): void {
+        if (this.exists(key)) {
+            if (!force) return;
+            clearTimeout(this.#cache[key].timeout);
+            this.#count--;
+        }
         ttl = (ttl && typeof ttl === "number" && ttl > 0) ? ttl : this.#ttl;
         this.#cache[key] = {
             value: value,
@@ -63,9 +68,7 @@ export class TypeCache extends EventEmitter {
     }
 
     remaining(key: string): number | void {
-        if (this.exists(key)) {
-            return this.#cache[key].ttl - (Date.now() - this.#cache[key].added);
-        }
+        if (this.exists(key)) return this.#cache[key].ttl - (Date.now() - this.#cache[key].added);
     }
 
     extend(key: string, ttl?: number): void {

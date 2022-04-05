@@ -35,7 +35,7 @@ cache.delete("key");
 `clear()` Removes all items from the cache.
 
 ## Cache item methods
-`insert(key, value [, ttl])` Inserts an item into the cache. If no `ttl` is provided the default cache-level ttl is used.
+`insert(key, value [, ttl, force])` Inserts an item into the cache. If no `ttl` is provided the default cache-level ttl is used. If an item already exists for the given key and `force` is `true` the item will effectively be overwritten (both its `value` and its `ttl`); otherwise, no changes will be made.
 
 `update(key, value)` Updates the value of the item in the cache.
 

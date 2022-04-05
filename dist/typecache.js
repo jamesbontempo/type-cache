@@ -39,8 +39,14 @@ class TypeCache extends events_1.EventEmitter {
     keys() {
         return Object.getOwnPropertyNames(__classPrivateFieldGet(this, _TypeCache_cache, "f"));
     }
-    insert(key, value, ttl) {
-        var _a;
+    insert(key, value, ttl, force) {
+        var _a, _b;
+        if (this.exists(key)) {
+            if (!force)
+                return;
+            clearTimeout(__classPrivateFieldGet(this, _TypeCache_cache, "f")[key].timeout);
+            __classPrivateFieldSet(this, _TypeCache_count, (_a = __classPrivateFieldGet(this, _TypeCache_count, "f"), _a--, _a), "f");
+        }
         ttl = (ttl && typeof ttl === "number" && ttl > 0) ? ttl : __classPrivateFieldGet(this, _TypeCache_ttl, "f");
         __classPrivateFieldGet(this, _TypeCache_cache, "f")[key] = {
             value: value,
@@ -50,7 +56,7 @@ class TypeCache extends events_1.EventEmitter {
             modified: undefined,
             deleted: undefined
         };
-        __classPrivateFieldSet(this, _TypeCache_count, (_a = __classPrivateFieldGet(this, _TypeCache_count, "f"), _a++, _a), "f");
+        __classPrivateFieldSet(this, _TypeCache_count, (_b = __classPrivateFieldGet(this, _TypeCache_count, "f"), _b++, _b), "f");
         this.emit("insert", __classPrivateFieldGet(this, _TypeCache_instances, "m", _TypeCache_format).call(this, key, __classPrivateFieldGet(this, _TypeCache_cache, "f")[key]));
     }
     exists(key) {
@@ -70,9 +76,8 @@ class TypeCache extends events_1.EventEmitter {
         }
     }
     remaining(key) {
-        if (this.exists(key)) {
+        if (this.exists(key))
             return __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].ttl - (Date.now() - __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].added);
-        }
     }
     extend(key, ttl) {
         if (this.exists(key)) {

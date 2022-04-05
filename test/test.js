@@ -73,10 +73,23 @@ describe("TypeCache tests", () => {
         expect(cache.keys()).to.deep.equal(keys)
     });
 
+    it("Tries to insert a key that already exists without forcing it", () => {
+        cache.insert(0, "new value", null, false);
+        expect(cache.select(0)).to.equal(1);
+    });
+
     it("Selects those 10 items & inspects their values", () => {
         for (let i = 0; i < 10; i++) {
             expect(cache.select(i)).to.equal(i + 1);
         }
+    });
+
+    it("Inserts a key that already exists with force", () => {
+        let value = "new value";
+        cache.insert(0, value, null, true);
+        items.find(item => item.key === "0").value = value;
+        expect(cache.select(0)).to.equal(value);
+        count++;
     });
 
     it("Tries to find & select an item that doesn't exist in the cache", () => {
@@ -147,8 +160,8 @@ describe("TypeCache tests", () => {
     });
 
     it("Deletes an item from the cache", () => {
-        cache.delete("0");
-        keys.shift()
+        cache.delete(0);
+        keys.shift();
         expect(cache.exists(0)).to.equal(false);
         expect(cache.count).to.equal(keys.length);
         expect(cache.keys()).to.deep.equal(keys);
@@ -172,7 +185,7 @@ describe("TypeCache tests", () => {
     it("Checks to see if we 'heard' every event", function(done) {
         expect(inserts.length).to.equal(count);
         expect(updates.length).to.equal(1);
-        expect(deletes.length).to.equal(count);
+        expect(deletes.length).to.equal(count - 1);
         for (deleted of deletes) {
             let item = items.find(item => item.key === deleted.key);
             expect({ value: item.value, ttl: item.ttl }).to.deep.equal({ value: deleted.value, ttl: deleted.ttl });
