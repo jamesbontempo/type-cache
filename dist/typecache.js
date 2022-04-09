@@ -59,12 +59,12 @@ class TypeCache extends events_1.EventEmitter {
         __classPrivateFieldSet(this, _TypeCache_count, (_b = __classPrivateFieldGet(this, _TypeCache_count, "f"), _b++, _b), "f");
         this.emit("insert", __classPrivateFieldGet(this, _TypeCache_instances, "m", _TypeCache_format).call(this, key, __classPrivateFieldGet(this, _TypeCache_cache, "f")[key]));
     }
-    exists(key) {
-        return __classPrivateFieldGet(this, _TypeCache_cache, "f").hasOwnProperty(key);
-    }
     select(key) {
         if (this.exists(key))
             return __classPrivateFieldGet(this, _TypeCache_cache, "f")[key].value;
+    }
+    exists(key) {
+        return __classPrivateFieldGet(this, _TypeCache_cache, "f").hasOwnProperty(key);
     }
     update(key, value) {
         if (this.exists(key)) {

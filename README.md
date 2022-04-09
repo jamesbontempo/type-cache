@@ -39,7 +39,7 @@ The number of items in the cache.
 
 `ttl`
 
-The default ttl in milliseconds for items inserted into the cache. You can "get" or "set" this value.
+The default ttl in milliseconds for items inserted into the cache. You can "get" or "set" this value. Values less than or equal to zero are ignored.
 
 ## Cache methods
 
@@ -55,6 +55,14 @@ Removes all items from the cache.
 `insert(key, value [, ttl, force])`
 
 Inserts an item into the cache. If no `ttl` is provided the default cache-level `ttl` is used. If a `ttl` value less than or equal to zero is provided it's ignored. If an item already exists for the given key and `force` is `true` the item will effectively be overwritten (both its `value` and its `ttl`); otherwise, no changes will be made.
+
+`select(key)`
+
+Returns the value of the item with the given `key`.
+
+`exists(key)`
+
+Returns `true` if an item with the given key exists in the cache, false otherwise. This can be particularly helpful for determining if an item really exists since a call to `select` for a non-existent key will return `undefined`.
 
 `update(key, value)`
 
@@ -86,7 +94,7 @@ The cache emits events when the `insert`, `update`, and `delete` methods are cal
     value: key value,
     ttl: key ttl,
     added: when the key was added,
-    modified: when the key was modified,
+    modified: when the key value was last modified,
     deleted: when the key was deleted
 }
 ```
@@ -97,13 +105,17 @@ Emits information about the item inserted.
 
 `update`
 
-Emits information about the updates to an item. Includes `before` and `after` objects allowing for comparison.
+Emits information about an update to an item, including `before` and `after` objects allowing for comparison.
 
 `delete`
 
-Emits information about the item deleted. Useful to "listen" for `ttl` expirations.
+Emits information about the item deleted; potentially useful for "listening" for `ttl` expirations.
 
-This allows you to do something like this:
+This allows you to do things like:
 ```js
-cache.on("delete", item => { doSomethingWith(item); });
+cache.on("insert", item => { verify(item); });
+
+cache.on("update", item => { compare(item.before, item.after); });
+
+cache.on("delete", item => { log(item); });
 ```

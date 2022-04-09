@@ -49,12 +49,12 @@ export class TypeCache extends EventEmitter {
         this.emit("insert", this.#format(key, this.#cache[key]));
     }
 
-    exists(key: string): boolean {
-        return this.#cache.hasOwnProperty(key);
-    }
-
     select(key: string): any {
         if (this.exists(key)) return this.#cache[key].value;
+    }
+
+    exists(key: string): boolean {
+        return this.#cache.hasOwnProperty(key);
     }
 
     update(key: string, value: any): void {
