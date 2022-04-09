@@ -15,10 +15,21 @@ npm test
 ## Usage
 ```js
 const { TypeCache } = require("@jamesbontempo/typecache");
+
 const cache = new TypeCache();
+
+cache.ttl = 15 * 60 * 1000; // 15 minutes
+cache.on("delete", item => { console.log(item); });
+
 cache.insert("key", "value");
 cache.update("key", ["new value 1", "new value 2"]);
-cache.delete("key");
+
+console.log(cache.keys()); // ["key"]
+console.log(cache.select("key")); // ["new value 1", "new value 2"]
+console.log(cache.exists("non-existent key")); // false
+
+cache.delete("key"); // removes & emits "delete" event for the item w/a key of "key"
+cache.clear(); // removes & emits delete events for all items
 ```
 
 ## Contents
