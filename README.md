@@ -29,7 +29,7 @@ console.log(cache.select("key")); // ["new value 1", "new value 2"]
 console.log(cache.exists("non-existent key")); // false
 
 cache.delete("key"); // removes & emits "delete" event for the item w/a key of "key"
-cache.clear(); // removes & emits delete events for all items
+cache.clear(); // removes & emits delete events for any remaining items
 ```
 
 ## Contents
